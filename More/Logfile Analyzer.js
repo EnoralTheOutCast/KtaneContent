@@ -201,6 +201,7 @@ class BombGroup {
         this.ParseAgain = []; // Lines that might be for a module but couldn't be matched by name. If Tweaks is installed, it'll try to parse these again once the LFABombInfo is logged.
         this.LoggedSerials = [];
         this.Events = [];
+        this.RuleSeed = 1;
     }
 
     get loggedBombs() {
@@ -395,6 +396,7 @@ function Bomb(seed) {
     this.ModdedPortPlates = [];
     this.ModdedTwoFactor = [];
     this.DayTimeWidgets = [];
+    this.VoltageMeterWidgets = [];
     this.Serial = "";
     this.State = "Unsolved";
     this.StartLine = 0;
@@ -671,6 +673,17 @@ function Bomb(seed) {
                 if (val == "MultipleWidgets:TwoFactor") {
                     edgework.append("<div class='widget multiplewidgets twofactor'>");
                 }
+            });
+        }
+
+        if (this.VoltageMeterWidgets.length > 0) {
+            edgework.append("<div class='widget separator'>");
+
+            this.VoltageMeterWidgets.sort(function(a, b) { return a - b; });
+            
+            this.VoltageMeterWidgets.forEach(function(voltage) {
+                var widget = $("<div class='widget voltagemeter'>").appendTo(edgework);
+                $("<span>").css({left: (voltage/10*83)+9 }).appendTo(widget);
             });
         }
 
@@ -970,7 +983,6 @@ function Bomb(seed) {
             var rendererModules = [];
             var rendererWidth = Math.round(4.54545455 * (Math.abs(viewBox[0]) + viewBox[2]));
             var rendererHeight = Math.round(4.54545455 * (Math.abs(viewBox[1]) + viewBox[3]));
-            console.log(this.ModuleOrder.length, (Math.abs(viewBox[0]) + viewBox[2]), rendererHeight);
 
             for (let moduleIndex = 0; moduleIndex < this.ModuleOrder.length; moduleIndex++) {
                 var face = moduleIndex >= this.ModuleOrder.length / 2 ? "rear" : "front";
@@ -984,13 +996,10 @@ function Bomb(seed) {
 
                 const moduleFaceIndex = moduleIndex % (this.ModuleOrder.length / 2);
                 const matchingModules = mods.filter(mod => (ID == "-" || mod.counter == `#${ID}`) && mod.moduleData.moduleID == moduleID);
-                console.log(matchingModules[0]);
                 const module = Object.assign(matchingModules.length >= 1 ? {type: "module", id: matchingModules[0].moduleData.moduleID, data: matchingModules[0].moduleData, parsed: matchingModules[0]} : moduleID == "Timer" ? {type: "timer", time: this.TimeLeft, strikes: this.Strikes} : {type: "empty"}, {face, index: moduleFaceIndex});
 
                 rendererModules.push(module);
             }
-            
-            console.log(rendererModules);
             
             var renderer = new BombRenderer(rendererParent, rendererWidth, rendererHeight);
             renderer.addModules(rendererModules);
