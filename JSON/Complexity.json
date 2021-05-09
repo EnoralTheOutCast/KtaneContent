@@ -5,9 +5,8 @@
     "Manual": [ "1254" ]
   },
   "DefuserDifficulty": "Medium",
-  "Description": "Do simple calculations in a base containing complex numbers.",
+  "Description": "Do simple calculations in a base containing complex numbers. Tags: broken, flickering, symbols, black-background",
   "ExpertDifficulty": "Hard",
-  "License": "OpenSource",
   "ModuleID": "complexity",
   "Name": "Complexity",
   "Origin": "Mods",

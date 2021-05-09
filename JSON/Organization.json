@@ -2,7 +2,7 @@
   "Author": "eXish",
   "Compatibility": "Compatible",
   "DefuserDifficulty": "VeryEasy",
-  "Description": "Solve the modules on a bomb in the order dictated by this module. Tags: notebook, switch, solve-order",
+  "Description": "Solve the modules on a bomb in the order dictated by this module. Tags: notebook, pencil, solve-order",
   "ExpertDifficulty": "Hard",
   "Ignore": [
     "+FullBoss",
@@ -54,6 +54,7 @@
     "Simon Forgets",
     "Simon's Stages",
     "Souvenir",
+    "SUSadmin",
     "Tallordered Keys",
     "Tax Returns",
     "The Heart",
@@ -158,6 +159,7 @@
     "Scalar Dials",
     "Seven Choose Four",
     "Shapes And Bombs",
+    "Silo Authorization",
     "Simon Sends",
     "Simon Sings",
     "Simon Stores",
@@ -187,7 +189,6 @@
   "Souvenir": { "Status": "NotACandidate" },
   "SteamID": "1831902672",
   "Symbol": "Org",
-  "TutorialVideoUrl": "https://www.youtube.com/watch?v=ew1AP9WeJ5U",
   "TwitchPlays": {
     "AutoPin": true,
     "ScoreExplanation": "The score depends on the number of modules on the bomb."

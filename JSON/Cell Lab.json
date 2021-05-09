@@ -2,7 +2,7 @@
   "Author": "Obvious",
   "Compatibility": "Compatible",
   "DefuserDifficulty": "Easy",
-  "Description": "Set the properties of five cells according to their HSV values. Tags: no-statuslight, text, cell",
+  "Description": "Fix the properties of three cells according to their HSV values and the other cells. Tags: no-statuslight, text, cell",
   "ExpertDifficulty": "Medium",
   "ModuleID": "cellLab",
   "Name": "Cell Lab",
@@ -12,5 +12,6 @@
   "SourceUrl": "https://github.com/Ob3vious/KTaNE_CellLab",
   "SteamID": "2243042449",
   "Symbol": "Clb",
+  "TutorialVideoUrl": "https://www.youtube.com/watch?v=81NgP4ek4ZM",
   "Type": "Regular"
 }

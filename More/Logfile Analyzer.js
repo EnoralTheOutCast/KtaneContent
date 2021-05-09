@@ -227,6 +227,8 @@ class BombGroup {
             .mousedown(function() { return false; });
         var bombGroupHTML = $("<div class='bomb-group'>").hide().appendTo("#wrap");
 
+        if (this.PreviewImage) bombHTML.addClass("preview").css("backgroundImage", `url("${this.PreviewImage}"), url(img/BombPreview.png)`);
+
         var totalModules = 0;
         var totalNeedies = 0;
         this.loggedBombs.forEach(function(bomb) {
@@ -270,6 +272,35 @@ class BombGroup {
         } else {
             missionInfoTree.push("State: " + this.State);
         }
+
+        // Copy DMG string
+        const dmgString = this.loggedBombs
+            .map(bomb =>
+                [
+                    this.isSingleBomb ? null : "(",
+                    formatTime(bomb.Time),
+                    `strikes:${bomb.TotalStrikes}`,
+                    ...bomb.Pools.map(pool => (pool.Count == 1 ? "" : `${pool.Count}*`) + pool.Modules.join(", ")),
+                    this.isSingleBomb ? null : ")"
+                ].filter(line => line != null).map(line => (this.isSingleBomb ? "" : "\t") + line).join("\n"))
+            .join("\n\n");
+
+        // Download profile
+        const profileWrapper = $("<div>");
+        const profileModules = [...new Set(this.loggedBombs.flatMap(bomb => Object.keys(bomb.Modules)))];
+        const expertProfile = $(`<a>Expert</a>`)
+            .attr("href", `data:application/json,${encodeURIComponent(JSON.stringify({ "EnabledList": profileModules, "Operation": 0 }))}`)
+            .attr("download", `${this.MissionName}.json`);
+        const defuserProfile = $(`<a>Defuser</a>`)
+            .attr("href", `data:application/json,${encodeURIComponent(JSON.stringify({ "EnabledList": profileModules, "Operation": 1 }))}`)
+            .attr("download", `${this.MissionName}.json`);
+        profileWrapper.append("Download ", expertProfile, "/", defuserProfile, " Profile");
+
+        missionInfoTree.push(
+            { obj: $("<button class=button>").text("Copy DMG String").click(() => { navigator.clipboard.writeText(dmgString); return false; }) },
+            { obj: profileWrapper },
+        );
+
         makeTree(missionInfoTree, $("<ul>").appendTo(missionInfo));
 
         $("<button class='module'>")
@@ -288,7 +319,7 @@ class BombGroup {
             .addCardClick(eventInfo);
 
         // Graph
-        if (this.Events.length !== 0)
+        if (this.Events.length !== 0 && this.isSingleBomb)
         {
             const graph = $SVG(`<svg viewBox="-0.1 -0.1 2.2 1.2">`);
 
@@ -374,14 +405,14 @@ class BombGroup {
                 $SVG(`<path stroke="${stat.color}" stroke-width=0.01 fill=none d="${stat.line}">`).prependTo(graph);
 
                 // Legend
-                $SVG(`<rect fill="${stat.color}" width=0.075 height=0.075 y=${i * 0.1}>`).appendTo(graph);
-                $SVG(`<text font-size=0.05 x=0.09 dominant-baseline=middle y=${i * 0.1 + 0.0375}>${stat.name}`).appendTo(graph);
+                $SVG(`<rect fill="${stat.color}" x=0.02 width=0.075 height=0.075 y=${i * 0.1}>`).appendTo(graph);
+                $SVG(`<text font-size=0.05 x=0.11 dominant-baseline=middle y=${i * 0.1 + 0.0375}>${stat.name}`).appendTo(graph);
 
                 i++;
             }
 
             // Graph lines
-            $SVG(`<path stroke=black stroke-width=0.01 fill=none d="M 0 1.01 L 2.01 1.01 L 2.01 0">`).appendTo(graph);
+            $SVG(`<path stroke=black stroke-width=0.01 fill=none d="M 0 0 L 0 1.01 L 2.01 1.01">`).appendTo(graph);
 
             var graphInfo = $("<div class='module-info'>").appendTo(info);
             $("<h3>").css("margin-top", "10px").text("Graph").appendTo(graphInfo);
@@ -520,6 +551,7 @@ function Bomb(seed) {
     this.TimeLeft = 0;
     this.Strikes = 0;
     this.TotalStrikes = 0;
+    this.Pools = [];
     this.Modules = {};
     this.Solved = 0;
     this.TotalModules = 0;
@@ -928,7 +960,8 @@ function Bomb(seed) {
         });
 
         function GetManual(parseData) {
-            let manual = parseData.moduleData.displayName
+            const moduleData = parseData.moduleData;
+            let manual = (moduleData.repo?.FileName || moduleData.repo?.Name || moduleData.displayName)
                 .replace("'", "’")
                 .replace(/[<>:"/\\|?*]/g, "");
 
@@ -950,6 +983,8 @@ function Bomb(seed) {
 
             return manual;
         }
+
+        mods = mods.filter(mod => mod?.moduleData?.repo?.Type !== "Holdable");
 
         // Display modules
         mods.forEach(function(parseData) {
@@ -1109,7 +1144,7 @@ function Bomb(seed) {
             //3.16205534 / number
             //Renderer representation (TheDarkSid3r Bomb Renderer)
 
-            const rendererParent = $("<div>").addClass("BombRenderer").css("position", "relative");
+            /*const rendererParent = $("<div>").addClass("BombRenderer").css("position", "relative");
             rendererHTML.replaceWith(rendererParent);
             
             var rendererEdgework = [
@@ -1137,7 +1172,7 @@ function Bomb(seed) {
                 }
                 
                 renderer.addEdgework(rendererEdgework);
-            });
+            });*/
         }
 
         return info;
@@ -1261,6 +1296,9 @@ function parseLog(opt) {
         return false;
     }
 
+    // An error could occur while parsing the log so we should re-enable the message.
+    $(".javascript-error").show();
+
     bombgroup = null;
     lastBombGroup = null;
     bomb = null;
@@ -1328,7 +1366,13 @@ function parseLog(opt) {
 
         var pool = /(\d+) Pools:/.exec(line);
         if (pool) {
-            linen += parseInt(pool[1]) + 1;
+            const poolCount = parseInt(pool[1]);
+            for (let i = 0; i < poolCount; i++) {
+                const matches = /\[(.+)\] Count: (\d+)/.exec(readLine());
+                bomb.Pools.push({ Modules: matches[1].split(", "), Count: parseInt(matches[2]) })
+            }
+
+            linen += 1;
             continue;
         }
 
@@ -1356,7 +1400,7 @@ function parseLog(opt) {
                                     if (matches) {
                                         if (obj.moduleID) {
                                             var parsedModule = id ? GetBomb().GetModuleID(obj.moduleID, id) : GetBomb().GetModule(obj.moduleID);
-                                            if (matcher.handler(matches, parsedModule, bomb.GetMod(obj.moduleID))) {
+                                            if (matcher.handler(matches, parsedModule, GetBomb().GetMod(obj.moduleID))) {
                                                 break;
                                             }
                                         } else if (matcher.handler(matches)) {
@@ -1455,10 +1499,14 @@ function parseLog(opt) {
     parsed.forEach(function(obj) { obj.ToHTML(opt); });
     $('#ui').addClass('has-bomb');
     $('#wrap').toggleClass('has-empty-log', parsed.length < 1);
-    selectBomb(bombSerial || parsed[parsed.length - 1].Bombs[0].Serial);
+    if (parsed.length !== 0)
+        selectBomb(bombSerial || parsed[parsed.length - 1].Bombs[0].Serial);
     if (bombSerial && bombModule)
         $(`#bomb-${bombSerial}>.modules>.module.module-${bombModule}`).click();
     toastr.success("Log read successfully!");
+
+    // Parsing finished successfully, so let's hide the error.
+    $(".javascript-error").hide();
 }
 
 $(function() {
@@ -1580,4 +1628,7 @@ $(function() {
             selectBomb(bombSerial);
     };
     window.onhashchange();
+
+    // If the JS has executed to here successfully then we don't need to display the error message.
+    $(".javascript-error").hide();
 });

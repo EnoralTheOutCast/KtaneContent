@@ -137,7 +137,7 @@ const parseData = [
                 }
             },
             {
-                regex: /Selected (.+) \(.+ \((.+)\)\)/,
+                regex: /Selected (.+?) \(.+ \((.+)\)\)/,
                 handler: function (matches) {
                     var tree = [];
                     tree.groups = new Groups();
@@ -599,6 +599,17 @@ const parseData = [
             }
         ]
     },
+    {
+        loggingTag: "LFABombPreviewService",
+        matches: [
+            {
+                regex: /Camera render for bomb:/,
+                handler: function () {
+                    lastBombGroup.PreviewImage = readLine();
+                }
+            }
+        ]
+    },
 
     // ** MODULES START HERE ** //
 
@@ -622,7 +633,7 @@ const parseData = [
                     });
                     return true;
                 }
-            },	
+            },
             {
                 regex: /.+/
             }
@@ -770,6 +781,26 @@ const parseData = [
                 handler: function (matches, module) {
                     var board = readMultiple(4);
                     module.push({ label: matches.input, obj: pre(board) });
+                    return true;
+                }
+            },
+            {
+                regex: /.+/
+            }
+        ]
+    },
+    {
+        displayName: "1D Chess",
+        moduleID: "1DChess",
+        loggingTag: "1D Chess",
+        matches: [
+            {
+                regex: /The position is.*/,
+                handler: function (matches, module) {
+                    let html = matches[0].replace(/\[([A-Z] [a-z]→[a-z])\]/g, (_, m) => `<span style='background: black; color: white; padding: 0 .1cm'>${m}</span>`);
+                    let obj = document.createElement('span');
+                    obj.innerHTML = html;
+                    module.push({ obj: obj });
                     return true;
                 }
             },
@@ -1188,6 +1219,22 @@ const parseData = [
 
                     module.push({ label: "Diagram:", obj: $("<div style='width: 40%'>").append(svg), expanded: true });
                 }
+            }
+        ]
+    },
+    {
+        moduleID: "boomdas",
+        loggingTag: "Boomdas",
+        matches: [
+            {
+                regex: /(Expecting:|You submitted:)/,
+                handler: function (matches, module) {
+                    module.push({ label: matches[0], obj: pre(readMultiple(8).replace(/\[Boomdas #\d+\] /g, "").replace(/_/g, " ").split("\n").filter(l => l.trim()).join("\n")) });
+                    return true;
+                }
+            },
+            {
+                regex: /.+/
             }
         ]
     },
@@ -2300,7 +2347,7 @@ const parseData = [
             {
                 regex: /Maze:/,
                 handler: function (matches, module) {
-                    var maze = readMultiple(13).replace(/\[Echolocation #\d+\] /g, '');
+                    var maze = readMultiple(4).replace(/\[Echolocation #\d+\] /g, '');
                     module.push({ label: matches.input, obj: pre(maze) });
                     return true;
                 }
@@ -2331,6 +2378,22 @@ const parseData = [
                 handler: function (matches, module) {
                     module.push({ label: "Operand:", obj: pre(readMultiple(2)) });
                 }
+            }
+        ]
+    },
+    {
+        moduleID: "factoringMaze",
+        loggingTag: "Factoring Maze",
+        matches: [
+            {
+                regex: /The generated with its walls is as follows:/,
+                handler: function (matches, module) {
+                    module.push({ label: "The maze generated with its walls as follows:", obj: pre(readMultiple(9).replace(/\[Factoring Maze #\d+\] /g, "")) });
+                    return true;
+                }
+            },
+            {
+                regex: /.+/
             }
         ]
     },
@@ -2375,6 +2438,23 @@ const parseData = [
                     }
                     finalLine += "\n         Red                      Green                    Blue";
                     module.push({ label: "The grid:", obj: pre(finalLine) });
+                    return true;
+                }
+            },
+            {
+                regex: /.+/
+            }
+        ]
+    },
+    {
+        displayName: "Fifteen",
+        moduleID: "fifteen",
+        loggingTag: "Fifteen",
+        matches: [
+            {
+                regex: /Indexes for placing the tiles:/,
+                handler: function (matches, module) {
+                    module.push({ label: matches.input, obj: pre(readMultiple(15)) });
                     return true;
                 }
             },
@@ -2512,6 +2592,15 @@ const parseData = [
         moduleID: "HexiEvilFMN",
         loggingTag: "Forget Everything",
         matches: [
+            {
+                regex: /(Stage order:) (\d+(,\d+)*)/,
+                handler: function (matches, module){
+                    var div = $('<div>');
+                    div.text(matches[2]).css({ "white-space": "nowrap", "overflow-x": "scroll " });
+                    module.push({ label: matches[1], obj: div });
+                    return true;
+                }
+            },
             {
                 regex: /Initial answer \(stage 1 display\): (\d+)$/,
                 handler: function (matches, module) {
@@ -2871,7 +2960,7 @@ const parseData = [
         moduleID: "giantsDrink",
         loggingTag: "The Giant's Drink",
         displayName: "The Giant’s Drink"
-    },	
+    },
     {
         displayName: "Grid Matching",
         moduleID: "GridMatching",
@@ -3011,6 +3100,72 @@ const parseData = [
         ]
     },
     {
+        displayName: "Hexiom",
+        moduleID: "hexiomModule",
+        loggingTag: "Hexiom",
+        matches: [
+            {
+                regex: /One possible solution:|Initial state:|Module disarmed with the following board:/,
+                handler: function (matches, module) {
+                    if (module.firstTime == null || module.firstTime === true)
+                    {
+                        module.firstTime = false;
+                        module.push("Notation: [White Hexagon: Interactable, Red Hexagon: Constraint Number, Black Hexagon: Non-interactable]");
+                    }
+                    const div = $('<div>').css({"text-align": "center"});
+                    const svg = $('<svg width="30%" viewBox="-25 -25 50 50" fill="none">').appendTo(div);
+                    const sideLength = 5;
+                    const pointsXY = [sideLength * Math.cos(Math.PI/3), sideLength * Math.sin(Math.PI/3)];
+                    const hexagon = `${sideLength},0 ${pointsXY[0]},${pointsXY[1]} -${pointsXY[0]},${pointsXY[1]} -${sideLength},0 -${pointsXY[0]},-${pointsXY[1]} ${pointsXY[0]},-${pointsXY[1]}`;
+                    readLine();
+                    let rawData = readMultiple(9).split('\n');
+                    let re = /\[Hexiom #\d+\] ([ 1-6])(\*|\s)([ 1-6])(\*|\s)([ 1-6])(\*|\s)([ 1-6])(\*|\s)([ 1-6])(\*|\s)/;
+                    hexData = {};
+                    for (let i = -2; i < 3; i++) {
+                        hexData[i] = {};
+                        for (let j = -2; j < 3; j++) {
+                            hexData[i][j] = {};
+                            for (let k = -2; k < 3; k++) {
+                                hexData[i][j][k] = {};
+                            }
+                        }
+                    }
+                    let baseIndices = [[2, 0], [2, -1], [1, -1], [1, -2], [0, -2]];
+                    rawData.forEach(function(item, index) {
+                        let lineMatches = re.exec(item);
+                        if (index === 0 || index === 8)
+                            hexData[0][2 - index / 2][-2 + index / 2] = {number: lineMatches[5] === " " ? -1 : parseInt(lineMatches[5]), isBlocked: lineMatches[6] === "*"};
+                        else if (index % 2 === 1)
+                            for (let i = -1; i < 2; i = i + 2)
+                                hexData[i][baseIndices[2 + i][0] - (index - 1) / 2][baseIndices[2 + i][1] + (index - 1) / 2] = {number: lineMatches[5 + 2 * i] === " " ? -1 : parseInt(lineMatches[5 + 2 * i]), isBlocked: lineMatches[6 + 2 * i] === "*"};
+                        else
+                            for (let i = -2; i < 3; i = i + 2)
+                                hexData[i][baseIndices[2 + i][0] - (index - 2) / 2][baseIndices[2 + i][1] + (index - 2) / 2] = {number: lineMatches[5 + 2 * i] === " " ? -1 : parseInt(lineMatches[5 + 2 * i]), isBlocked: lineMatches[6 + 2 * i] === "*"};
+                    });
+                    readLine();
+                    for (let i = -2; i < 3; i++)
+                        for (let j = -2; j < 3; j++)
+                            for (let k = -2; k < 3; k++) {
+                                if (i + j + k !== 0)
+                                    continue;
+
+                                let color = hexData[i][j][k].isBlocked ? hexData[i][j][k].number === -1 ? "black" : "red" : "none";
+                                let group = $SVG(`<g transform="translate(${(i - j - k) * sideLength * 3 / 4 } ${(k - j) * sideLength * Math.cos(Math.PI/6)})">`).appendTo(svg);
+                                $SVG(`<polygon points="${hexagon}" style="fill:${color};stroke:black;stroke-width:1;fill-rule:nonzero;""/>`).appendTo(group);
+                                if (hexData[i][j][k].number !== -1)
+                                    $SVG('<text x="0" y="0" font-size="8" text-anchor="middle" dominant-baseline="central" fill="black">').text(hexData[i][j][k].number).appendTo(group);
+                            }
+
+                    module.push({label: matches.input, obj: div});
+                    return true;
+                }
+            },
+            {
+                regex: /.+/
+            }
+        ]
+    },
+    {
         displayName: "HTTP Response",
         moduleID: "http",
         loggingTag: "NeedyHTTP",
@@ -3050,6 +3205,37 @@ const parseData = [
                     }
 
                     module.push({ label: 'Stage ' + matches[1], obj: $('<ul>').append(cluesLi).append(buttonsLi).append(decoysLi), expandable: true });
+                    return true;
+                }
+            },
+            {
+                regex: /.+/
+            }
+        ]
+    },
+    {
+        moduleID: "CaptchaModule",
+        loggingTag: "I'm Not a Robot",
+        matches: [
+            {
+                regex: /Selected module: (.+)/,
+                handler: function (matches, module) {
+                    module.selectedCaptcha = matches[1];
+                }
+            },
+            {
+                regex: /Current images: (\d+) \((.*)\), (\d+) \((.*)\), (\d+) \((.*)\), (\d+) \((.*)\), (\d+) \((.*)\), (\d+) \((.*)\)/,
+                handler: function (matches, module) {
+                    var table = $('<table>');
+                    var currentRow = null;
+                    for (var index = 0; index < 6; index++) {
+                        var i = index * 2 + 1;
+                        var correct = matches[i + 1].split(", ").includes(module.selectedCaptcha);
+                        if (!index || index == 3) currentRow = $('<tr>').appendTo(table);
+                        var cell = $('<td>').css({ padding: 0, fontSize: 0, position: "relative" }).append(`<img src="img/I'm Not a Robot/${matches[i]}.png" style="width: 130px;" />`).appendTo(currentRow);
+                        if (correct) cell.append(`<img src="img/I'm Not a Robot/CorrectCheck.png" style="width: 40px; position: absolute; top: 45px; left: 45px;" />`);
+                    }
+                    module.push({ label: "Current images:", obj: table });
                     return true;
                 }
             },
@@ -4686,6 +4872,22 @@ const parseData = [
         loggingTag: "PasswordComponent"
     },
     {
+        moduleID: "GSPathfinder",
+        loggingTag: "Pathfinder",
+        matches: [
+            {
+                regex: /The grid:/,
+                handler: function (matches, module) {
+                    module.push({ label: "The grid:", obj: pre(readMultiple(4)) });
+                    return true;
+                }
+            },
+            {
+                regex: /.+/
+            }
+        ]
+    },
+    {
         moduleID: "Painting",
         loggingTag: "Painting",
         matches: [
@@ -5913,7 +6115,7 @@ const parseData = [
                     {
                         var unused1 = readTaggedLine();
                         var unused2 = readTaggedLine();
-    
+
                         var letterTable = readTaggedLine().replace(/Letter table is:/, "");
                         var ltable = $('<table>').css('border', '1px solid black').css('border-collapse', 'collapse')
                         for (var r = 0; r < 5; r++) {
@@ -6111,14 +6313,14 @@ const parseData = [
                 handler: function (matches, module) {
                     module.push(matches.input);
                     return true;
-                }	
+                }
             },
             {
                 regex: /Module is now in the solve phase, good luck!/,
                 handler: function (matches, module) {
                     module.push({obj: matches.input, nobullet: true});
                     return true;
-                }	
+                }
             },
             {
                 regex: /----------Stage (.+):----------/,
@@ -6798,7 +7000,7 @@ const parseData = [
                     if (!('TennisLines' in module))
                         module.TennisLines = [];
                     module.TennisLines.push(matches.input);
-                    if (module.TennisLines.length % 5 === 0) {
+                    if (module.TennisLines.length % 5 === 0 || matches.input.includes('wins.')) {
                         module.push({ label: module.TennisLastHeading || 'SN character:', obj: $('<pre>').text(module.TennisLines.join("\n")) });
                         module.TennisLines = [];
                     }
